@@ -51,7 +51,6 @@
     .recording .halo { background: #fff0f2; animation: breathing 1.7s ease-in-out infinite; }
     .recording .halo::after { border-color: #ffd8de; }
     @keyframes breathing { 50% { transform: scale(1.13); opacity: .7; } }
-    .hint { margin: 3px 0 18px; color: #77758e; font-size: 14px; font-weight: 600; }
     .timer { font-variant-numeric: tabular-nums; font-size: 45px; line-height: 1.15; letter-spacing: -.04em; font-weight: 750; }
     .wave { display: flex; height: 68px; justify-content: center; align-items: center; gap: 3px; margin: 12px auto 3px; overflow: hidden; }
     .bar { display: block; background: #c9bafa; width: 4px; height: 10px; border-radius: 10px; transition: height .08s linear, background .2s; }
@@ -87,19 +86,16 @@
         <span class="stop-icon" aria-hidden="true"></span>
       </button>
     </div>
-    <p class="hint" id="hint">Tap to record</p>
     <div class="timer" id="timer">00:00</div>
     <div class="wave" id="wave" aria-hidden="true"></div>
     <p class="status" id="status" role="status" aria-live="polite"></p>
     <hr class="divider">
     <div class="actions">
-      <button class="action" id="play" disabled aria-pressed="false">
+      <button class="action" id="play" aria-label="Play normal" disabled aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>
-        <span>Play normal</span>
       </button>
-      <button class="action" id="reverse" disabled aria-pressed="false">
+      <button class="action" id="reverse" aria-label="Play reversed" disabled aria-pressed="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6 5 12l7 6M19 6l-7 6 7 6"/></svg>
-        <span>Play reversed</span>
       </button>
     </div>
   </section>
@@ -109,7 +105,7 @@
 (() => {
   const $ = id => document.getElementById(id);
   const panel = $('panel'), recordBtn = $('record'), playBtn = $('play'), reverseBtn = $('reverse');
-  const timer = $('timer'), status = $('status'), hint = $('hint'), wave = $('wave');
+  const timer = $('timer'), status = $('status'), wave = $('wave');
   const bars = [];
   const baseHeights = [8,11,16,11,20,27,17,32,24,37,20,30,48,38,26,51,36,23,44,31,41,22,34,17,28,19,14,23,11,17,8];
   baseHeights.forEach(h => {
@@ -134,7 +130,6 @@
     recordBtn.disabled = next === 'requesting' || next === 'processing';
     recordBtn.setAttribute('aria-label', next === 'recording' ? 'Stop recording' : 'Start recording');
     recordBtn.title = next === 'recording' ? 'Stop recording' : 'Start recording';
-    hint.textContent = ({ requesting: 'Allow microphone access…', recording: 'Tap to stop recording', processing: 'Preparing your audio…', idle: 'Tap to record', ready: 'Tap to record again', playing: 'Tap a play button to stop' })[next];
     playBtn.disabled = reverseBtn.disabled = !recordedBuffer || next === 'requesting' || next === 'recording' || next === 'processing';
     playBtn.setAttribute('aria-pressed', String(next === 'playing' && playingMode === 'normal'));
     reverseBtn.setAttribute('aria-pressed', String(next === 'playing' && playingMode === 'reverse'));
