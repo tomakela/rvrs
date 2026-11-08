@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Voice Flip — Record & Reverse",
+  "short_name": "Voice Flip",
+  "description": "Record your voice and play it back normally or in reverse.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8f7fc",
+  "theme_color": "#f6f5ff",
+  "categories": ["utilities", "music"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
