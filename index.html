@@ -56,8 +56,7 @@
     .bar { display: block; background: #c9bafa; width: 4px; height: 10px; border-radius: 10px; transition: height .08s linear, background .2s; }
     .recording .bar { background: #fa9cac; }
     .playing .bar { background: #9474ef; }
-    .status { margin: 7px auto 0; color: #8e8aa1; font-size: 13px; line-height: 1.5; }
-    .status:empty { display: none; }
+    .status { height: 20px; margin: 7px auto 0; overflow: hidden; color: #8e8aa1; font-size: 13px; line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
     .divider { border: 0; border-top: 1px solid #efedf6; margin: 27px 0 22px; }
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .action {
@@ -196,7 +195,6 @@
     recordedBuffer = reversedBuffer = null;
     timer.textContent = '00:00';
     setMode('requesting');
-    setStatus('Requesting microphone access…');
     try {
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
         throw new Error('Microphone recording is unavailable here. Try a modern browser on HTTPS or localhost.');
@@ -217,7 +215,6 @@
       };
       recorder.onstop = async () => {
         stopAnimation(); closeMicrophone(); setMode('processing');
-        setStatus('Preparing recording…');
         try {
           const blob = new Blob(chunks, { type: recorder.mimeType });
           if (!blob.size) throw new Error('No audio was captured.');
