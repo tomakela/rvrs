@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f5ff">
+  <title>Voice Flip — Record & Reverse</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center;
+      color: #23223e; background:
+        radial-gradient(ellipse at 13% 12%, #e6dcff 0, transparent 43%),
+        radial-gradient(ellipse at 92% 95%, #e8ddff 0, transparent 42%),
+        #f8f7fc;
+      padding: 28px 18px;
+    }
+    main { width: min(100%, 480px); text-align: center; }
+    .panel {
+      background: rgba(255,255,255,.9); border: 1px solid rgba(255,255,255,.92);
+      box-shadow: 0 18px 60px rgba(91,75,164,.10), 0 4px 20px rgba(91,75,164,.04);
+      border-radius: 32px; padding: 34px 28px 28px;
+    }
+    .record-area { position: relative; height: 204px; display: grid; place-items: center; }
+    .halo { position: absolute; width: 180px; height: 180px; border-radius: 50%; background: #f3efff; pointer-events: none; }
+    .halo::after { content: ""; position: absolute; inset: 12px; border: 1px solid #e8deff; border-radius: inherit; }
+    .mic {
+      position: relative; z-index: 1; width: 136px; height: 136px; border: 0; border-radius: 50%;
+      display: grid; place-items: center; cursor: pointer; color: #fff;
+      background: linear-gradient(150deg, #a387fb, #7854e7 80%);
+      box-shadow: 0 14px 29px rgba(117,81,219,.34), inset 0 2px 4px rgba(255,255,255,.2);
+      transition: transform .18s, box-shadow .18s, background .18s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mic:hover:not(:disabled) { transform: scale(1.045); box-shadow: 0 17px 32px rgba(117,81,219,.37); }
+    .mic:active:not(:disabled) { transform: scale(.965); }
+    .mic:disabled { cursor: progress; opacity: .72; }
+    .mic svg { width: 53px; height: 53px; stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .mic .stop-icon { display: none; width: 36px; height: 36px; background: white; border-radius: 8px; }
+    .recording .mic { background: linear-gradient(150deg,#ff878b,#f05471); box-shadow: 0 14px 34px rgba(240,84,113,.32); }
+    .recording .mic-icon { display: none; }
+    .recording .stop-icon { display: block; }
+    .recording .halo { background: #fff0f2; animation: breathing 1.7s ease-in-out infinite; }
+    .recording .halo::after { border-color: #ffd8de; }
+    @keyframes breathing { 50% { transform: scale(1.13); opacity: .7; } }
+    .hint { margin: 3px 0 18px; color: #77758e; font-size: 14px; font-weight: 600; }
+    .timer { font-variant-numeric: tabular-nums; font-size: 45px; line-height: 1.15; letter-spacing: -.04em; font-weight: 750; }
+    .wave { display: flex; height: 68px; justify-content: center; align-items: center; gap: 3px; margin: 12px auto 3px; overflow: hidden; }
+    .bar { display: block; background: #c9bafa; width: 4px; height: 10px; border-radius: 10px; transition: height .08s linear, background .2s; }
+    .recording .bar { background: #fa9cac; }
+    .playing .bar { background: #9474ef; }
+    .status { margin: 7px auto 0; color: #8e8aa1; font-size: 13px; line-height: 1.5; }
+    .status:empty { display: none; }
+    .divider { border: 0; border-top: 1px solid #efedf6; margin: 27px 0 22px; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .action {
+      min-width: 0; padding: 17px 12px; border: 1px solid #eae6f8; border-radius: 17px;
+      color: #4f437d; font: inherit; font-size: 14px; font-weight: 750;
+      background: #f8f6ff; display: flex; align-items: center; justify-content: center; gap: 9px;
+      cursor: pointer; transition: transform .15s, background .15s, border-color .15s;
+    }
+    .action svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .action:hover:not(:disabled) { background: #efebff; border-color: #d7cbff; }
+    .action:active:not(:disabled) { transform: scale(.97); }
+    .action[aria-pressed="true"] { background: #815ee7; color: white; border-color: #815ee7; }
+    .action:disabled { opacity: .40; cursor: not-allowed; }
+    button:focus-visible { outline: 3px solid #a78cf8; outline-offset: 4px; }
+    @media (max-width: 380px) { .panel { padding: 26px 18px 23px; border-radius: 26px; } .action { font-size: 12px; gap: 6px; padding-inline: 7px; } .action svg { width: 18px; } .wave { gap: 2px; } }
+    @media (prefers-reduced-motion: reduce) { .recording .halo { animation: none; } *, *::before, *::after { transition-duration: 0s !important; } }
+  </style>
+</head>
+<body>
+<main>
+  <section class="panel" id="panel" aria-label="Voice recorder">
+    <div class="record-area">
+      <div class="halo" aria-hidden="true"></div>
+      <button class="mic" id="record" aria-label="Start recording" title="Start recording">
+        <svg class="mic-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2.4" width="6" height="12.8" rx="3"/><path d="M5.8 10.5a6.2 6.2 0 0 0 12.4 0M12 16.7v4.5m-4 0h8"/></svg>
+        <span class="stop-icon" aria-hidden="true"></span>
+      </button>
+    </div>
+    <p class="hint" id="hint">Tap to record</p>
+    <div class="timer" id="timer">00:00</div>
+    <div class="wave" id="wave" aria-hidden="true"></div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <hr class="divider">
+    <div class="actions">
+      <button class="action" id="play" disabled aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>
+        <span>Play normal</span>
+      </button>
+      <button class="action" id="reverse" disabled aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6 5 12l7 6M19 6l-7 6 7 6"/></svg>
+        <span>Play reversed</span>
+      </button>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const panel = $('panel'), recordBtn = $('record'), playBtn = $('play'), reverseBtn = $('reverse');
+  const timer = $('timer'), status = $('status'), hint = $('hint'), wave = $('wave');
+  const bars = [];
+  const baseHeights = [8,11,16,11,20,27,17,32,24,37,20,30,48,38,26,51,36,23,44,31,41,22,34,17,28,19,14,23,11,17,8];
+  baseHeights.forEach(h => {
+    const bar = document.createElement('span'); bar.className = 'bar';
+    bar.style.height = `${h}px`; wave.appendChild(bar); bars.push(bar);
+  });
+
+  let audioContext, recorder, stream, micSource, micAnalyser, playAnalyser;
+  let recordedBuffer, reversedBuffer, activeSource, playingMode;
+  let recordingStart = 0, playStart = 0, playDuration = 0, rafId = 0, mode = 'idle';
+  let micSamples = new Uint8Array(2048), playSamples = new Uint8Array(2048);
+
+  const clock = secs => {
+    const n = Math.max(0, Math.floor(secs));
+    return `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+  };
+  const setStatus = message => { status.textContent = message; };
+  function setMode(next) {
+    mode = next;
+    panel.classList.toggle('recording', next === 'recording');
+    panel.classList.toggle('playing', next === 'playing');
+    recordBtn.disabled = next === 'requesting' || next === 'processing';
+    recordBtn.setAttribute('aria-label', next === 'recording' ? 'Stop recording' : 'Start recording');
+    recordBtn.title = next === 'recording' ? 'Stop recording' : 'Start recording';
+    hint.textContent = ({ requesting: 'Allow microphone access…', recording: 'Tap to stop recording', processing: 'Preparing your audio…', idle: 'Tap to record', ready: 'Tap to record again', playing: 'Tap a play button to stop' })[next];
+    playBtn.disabled = reverseBtn.disabled = !recordedBuffer || next === 'requesting' || next === 'recording' || next === 'processing';
+    playBtn.setAttribute('aria-pressed', String(next === 'playing' && playingMode === 'normal'));
+    reverseBtn.setAttribute('aria-pressed', String(next === 'playing' && playingMode === 'reverse'));
+  }
+  function drawIdle() { bars.forEach((b, i) => b.style.height = `${baseHeights[i]}px`); }
+  function stopAnimation() { cancelAnimationFrame(rafId); rafId = 0; }
+  function animate() {
+    if (mode === 'recording') {
+      timer.textContent = clock((performance.now() - recordingStart) / 1000);
+      drawAudio(micAnalyser, micSamples);
+    } else if (mode === 'playing') {
+      const elapsed = Math.min(playDuration, audioContext.currentTime - playStart);
+      timer.textContent = clock(elapsed);
+      drawAudio(playAnalyser, playSamples);
+    } else { return; }
+    rafId = requestAnimationFrame(animate);
+  }
+  function drawAudio(analyser, samples) {
+    if (!analyser) return;
+    analyser.getByteTimeDomainData(samples);
+    const chunk = Math.floor(samples.length / bars.length);
+    bars.forEach((bar, i) => {
+      let total = 0;
+      const offset = i * chunk;
+      for (let j = 0; j < chunk; j++) {
+        const v = (samples[offset + j] - 128) / 128;
+        total += v * v;
+      }
+      const rms = Math.sqrt(total / chunk);
+      bar.style.height = `${Math.max(6, Math.min(60, 7 + rms * 165))}px`;
+    });
+  }
+  function stopPlayback() {
+    if (activeSource) {
+      const source = activeSource;
+      activeSource = null;
+      source.onended = null;
+      try { source.stop(); } catch (_) {}
+      try { source.disconnect(); } catch (_) {}
+    }
+    playingMode = null;
+    if (mode === 'playing') {
+      stopAnimation();
+      timer.textContent = clock(recordedBuffer?.duration || 0);
+      setMode('ready');
+      drawIdle();
+      setStatus('');
+    }
+  }
+  function closeMicrophone() {
+    try { micSource?.disconnect(); } catch (_) {}
+    micSource = null;
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    stream = null;
+    micAnalyser = null;
+  }
+  async function getAudioContext() {
+    audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') await audioContext.resume();
+    return audioContext;
+  }
+  async function startRecording() {
+    stopPlayback();
+    recordedBuffer = reversedBuffer = null;
+    timer.textContent = '00:00';
+    setMode('requesting');
+    setStatus('Requesting microphone access…');
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        throw new Error('Microphone recording is unavailable here. Try a modern browser on HTTPS or localhost.');
+      }
+      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = micStream;
+      const context = await getAudioContext();
+      micSource = context.createMediaStreamSource(stream);
+      micAnalyser = context.createAnalyser();
+      micAnalyser.fftSize = 2048;
+      micSource.connect(micAnalyser); // Do not send live microphone audio to the speakers.
+      recorder = new MediaRecorder(stream);
+      const chunks = [];
+      recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+      recorder.onerror = event => {
+        stopAnimation(); closeMicrophone(); setMode('idle');
+        setStatus(`Recording failed: ${event.error?.message || 'Unknown error'}`);
+      };
+      recorder.onstop = async () => {
+        stopAnimation(); closeMicrophone(); setMode('processing');
+        setStatus('Preparing recording…');
+        try {
+          const blob = new Blob(chunks, { type: recorder.mimeType });
+          if (!blob.size) throw new Error('No audio was captured.');
+          recordedBuffer = await context.decodeAudioData(await blob.arrayBuffer());
+          if (!recordedBuffer.length) throw new Error('Recording was empty.');
+          timer.textContent = clock(recordedBuffer.duration);
+          setMode('ready');
+          setStatus('');
+        } catch (error) {
+          recordedBuffer = null;
+          timer.textContent = '00:00';
+          setMode('idle');
+          setStatus('Could not read recording: ' + error.message);
+        }
+        drawIdle();
+      };
+      recorder.start();
+      recordingStart = performance.now();
+      setMode('recording');
+      setStatus('');
+      stopAnimation(); animate();
+    } catch (error) {
+      stopAnimation(); closeMicrophone(); setMode('idle'); drawIdle();
+      setStatus(error.name === 'NotAllowedError' ? 'Microphone blocked. Allow access in your browser settings.' : error.message);
+    }
+  }
+  function stopRecording() {
+    if (recorder?.state !== 'recording') return;
+    setMode('processing');
+    stopAnimation();
+    recorder.stop();
+  }
+  function makeReversedBuffer() {
+    if (reversedBuffer) return reversedBuffer;
+    reversedBuffer = audioContext.createBuffer(recordedBuffer.numberOfChannels, recordedBuffer.length, recordedBuffer.sampleRate);
+    for (let i = 0; i < recordedBuffer.numberOfChannels; i++) {
+      reversedBuffer.copyToChannel(recordedBuffer.getChannelData(i).slice().reverse(), i);
+    }
+    return reversedBuffer;
+  }
+  async function play(direction) {
+    if (!recordedBuffer || mode === 'recording' || mode === 'processing' || mode === 'requesting') return;
+    if (mode === 'playing' && playingMode === direction) { stopPlayback(); return; }
+    stopPlayback();
+    try {
+      const context = await getAudioContext();
+      const source = context.createBufferSource();
+      source.buffer = direction === 'reverse' ? makeReversedBuffer() : recordedBuffer;
+      playAnalyser ||= context.createAnalyser();
+      playAnalyser.fftSize = 2048;
+      source.connect(playAnalyser);
+      // Connect once, not on each replay.
+      if (!playAnalyser._connectedToSpeakers) {
+        playAnalyser.connect(context.destination);
+        playAnalyser._connectedToSpeakers = true;
+      }
+      activeSource = source;
+      playingMode = direction;
+      playDuration = recordedBuffer.duration;
+      playStart = context.currentTime;
+      source.onended = () => {
+        if (activeSource !== source) return;
+        activeSource = null;
+        stopAnimation();
+        playingMode = null;
+        timer.textContent = clock(playDuration);
+        setMode('ready'); drawIdle(); setStatus('');
+      };
+      source.start();
+      setMode('playing');
+      setStatus('');
+      stopAnimation(); animate();
+    } catch (error) { stopPlayback(); setStatus('Playback error: ' + error.message); }
+  }
+  recordBtn.addEventListener('click', () => mode === 'recording' ? stopRecording() : startRecording());
+  playBtn.addEventListener('click', () => play('normal'));
+  reverseBtn.addEventListener('click', () => play('reverse'));
+  setMode('idle');
+})();
+</script>
+</body>
+</html>
